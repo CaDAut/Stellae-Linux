@@ -1,37 +1,54 @@
 #!/bin/bash
 # ==========================================
-#    🌟 build-stellae.sh
-#    Cria a Stellae Linux do zero
+#    🌟 build-stellae.sh (versão corrigida)
+#    Usa live-build para gerar ISO real
 # ==========================================
 
-# Verifica se está como root
+set -e  # Parar se houver erro
+
+echo "🚀 Iniciando construção da Stellae Linux..."
+
+# Verifica root
 if [ "$EUID" -ne 0 ]; then
-    echo "❌ Execute como root: sudo $0"
+    echo "❌ Execute como root"
     exit 1
 fi
 
-# Configurações
-ROOTFS="/mnt/stellae-root"
-DEBIAN_MIRROR="http://deb.debian.org/debian"
+# Vai para o diretório do projeto
+cd "$(dirname "$0")/.." || exit 1
 
-# Cria diretório
-mkdir -p $ROOTFS
+# Instala live-build (ferramenta oficial do Debian)
+echo "🔧 Instalando live-build..."
+apt-get update
+apt-get install -y live-build squashfs-tools
 
-# Passo 1: Instala o sistema base Debian
-debootstrap stable $ROOTFS $DEBIAN_MIRROR
+# Configura o live-build (se ainda não estiver configurado)
+if [ ! -d "config" ]; then
+    echo "⚙️ Configurando live-build..."
+    lb config \
+        --binary-images iso-hybrid \
+        --architectures amd64 \
+        --distribution bookworm \
+        --archive-areas "main contrib non-free" \
+        --bootloader syslinux \
+        --desktop xfce \
+        --package-lists "minimal"
+fi
 
-# Passo 2: Monta sistemas necessários
-mount -t proc /proc $ROOTFS/proc
-mount -t sysfs /sys $ROOTFS/sys
-mount -o bind /dev $ROOTFS/dev
+# Garante que há algo para instalar
+echo "xfce4" > config/package-lists/desktop.list.chroot
 
-# Passo 3: Copia um script de configuração (vem depois)
-cp -r config/includes.chroot/* $ROOTFS/
+# Copia arquivos personalizados (se existirem)
+if [ -d "config/includes.chroot" ]; then
+    echo "📁 Arquivos personalizados detectados"
+fi
 
-# Passo 4: Entra no sistema e executa a personalização
-chroot $ROOTFS /bin/bash -c "bash /stellae-setup.sh"
+# Constrói a ISO
+echo "📦 Construindo a ISO... (isso levará 30-60 minutos)"
+lb build
 
-# Passo 5: Desmonta
-umount $ROOTFS/{proc,sys,dev}
+# Move para stellae-iso/ para o upload
+mkdir -p stellae-iso
+mv binary.iso stellae-iso/ || { echo "❌ Falha: ISO não foi gerada!"; exit 1; }
 
-echo "✅ Sistema base criado em $ROOTFS"
+echo "✅ ISO gerada com sucesso: stellae-iso/binary.iso"
