@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==========================================
-#    🌟 build-stellae.sh (versão compatível com Ubuntu)
-#    Gera ISO da Stellae com live-build
+#    🌟 build-stellae.sh (versão corrigida para Debian em Ubuntu)
+#    Usa live-build com mirrors do Debian
 # ==========================================
 
 set -e
@@ -15,35 +15,38 @@ fi
 
 cd "$(dirname "$0")/.." || exit 1
 
-# Instalar live-build (se ainda não estiver)
+# Instalar live-build
 echo "🔧 Instalando live-build..."
 apt-get update
 apt-get install -y live-build squashfs-tools
 
-# Configuração básica (sem opções inválidas)
-if [ ! -d "config" ]; then
-    echo "⚙️ Configurando live-build (modo compatível)"
-    lb config \
-        --binary-images iso-hybrid \
-        --architectures amd64 \
-        --distribution bookworm \
-        --archive-areas "main contrib non-free" \
-        --bootloader syslinux
-fi
+# Limpar config antiga, se existir
+rm -rf config/
 
-# Forçar uso de pacotes XFCE
+# Configurar com mirrors EXPLÍCITOS do Debian
+echo "⚙️ Configurando live-build para Debian bookworm"
+lb config \
+    --binary-images iso-hybrid \
+    --architectures amd64 \
+    --distribution bookworm \
+    --archive-areas "main contrib non-free" \
+    --bootloader syslinux \
+    --mirror-bootstrap "http://deb.debian.org/debian" \
+    --mirror-chroot "http://deb.debian.org/debian" \
+    --mirror-chroot-security "http://security.debian.org/debian-security" \
+    --mirror-chroot-backports "http://deb.debian.org/debian-backports"
+
+# Pacotes para XFCE
 echo "xfce4" > config/package-lists/xfce.list.chroot
 echo "xfce4-goodies" >> config/package-lists/xfce.list.chroot
 echo "lightdm" >> config/package-lists/xfce.list.chroot
 echo "lightdm-gtk-greeter" >> config/package-lists/xfce.list.chroot
+echo "live-boot" >> config/package-lists/xfce.list.chroot
+echo "live-config" >> config/package-lists/xfce.list.chroot
+echo "live-config-systemd" >> config/package-lists/xfce.list.chroot
 
-# Garantir que o sistema saiba que é um live
-echo "live" > config/package-lists/live.list.chroot
-
-# Personalizações (se existirem)
-if [ -d "config/includes.chroot" ]; then
-    echo "📁 Arquivos personalizados serão aplicados"
-fi
+# Garantir que o sistema é live
+lb config -a amd64 --linux-packages "linux-image"
 
 # Construir a ISO
 echo "📦 Construindo a ISO... (30-60 minutos)"
