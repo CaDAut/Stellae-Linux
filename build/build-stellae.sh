@@ -1,4 +1,10 @@
 #!/bin/bash
+# ==========================================
+#    🌟 build-stellae.sh (versão corrigida)
+#    Compatível com GitHub Actions e Ubuntu 24.04
+#    Gera ISO da Stellae Linux (Debian Bookworm)
+# ==========================================
+
 set -e
 
 echo "🚀 Iniciando construção da Stellae Linux..."
@@ -15,9 +21,9 @@ apt-get update
 apt-get install -y live-build squashfs-tools
 
 echo "🧹 Limpando configurações e cache antigas..."
-rm -rf config/ # Remove tudo ANTES do lb config, ok
+rm -rf config/
 
-# Configuração live-build (todas opções de uma vez só)
+# Configuração live-build (todas opções de uma vez só, sem duplicidade de repositórios)
 echo "⚙️ Configurando live-build para Debian bookworm"
 lb config \
     --binary-images iso-hybrid \
@@ -31,20 +37,13 @@ lb config \
     --keyring-packages "debian-archive-keyring" \
     --linux-packages "linux-image-amd64"
 
-# Remover vestígios de Ubuntu (agora o diretório existe)
+# Remover vestígios de Ubuntu (caso tenha sobrado de builds anteriores)
 echo "📝 Removendo qualquer vestígio de Ubuntu"
 rm -f config/archives/ubuntu.list config/archives/*ubuntu* 2>/dev/null || true
 
-# Repositórios oficiais do Debian
-mkdir -p config/archives
-cat > config/archives/debian.list <<'EOF'
-deb http://deb.debian.org/debian bookworm main
-deb http://security.debian.org/debian-security bookworm-security main
-deb http://deb.debian.org/debian bookworm-updates main
-EOF
-
-# Lista de pacotes mínimos
+# Lista de pacotes mínimos (apenas pacotes válidos do Debian)
 mkdir -p config/package-lists
+
 cat > config/package-lists/kernel.list.chroot <<EOF
 linux-image-amd64
 live-boot
