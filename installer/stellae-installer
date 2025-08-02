@@ -1,1 +1,32 @@
+#!/bin/bash
+# ==========================================
+#    🛠️ Instalador da Stellae
+#    Modo texto, simples e seguro
+# ==========================================
 
+if [ "$EUID" -ne 0 ]; then
+    echo "Use: sudo $0"
+    exit 1
+fi
+
+echo "🌌 Bem-vindo ao instalador da Stellae Linux!"
+
+# Pergunta disco
+DISK=$(lsblk -p | grep -E "sd|vd|xvd" | awk '{print $1, $4}' | head -5 | \
+      dialog --stdout --menu "Escolha o disco:" 15 60 5)
+
+# Formata e copia
+sgdisk -n 1:0:+512M -t 1:ef00 $DISK        # EFI
+sgdisk -n 2:0:0 -t 2:8300 $DISK             # Linux
+mkfs.fat -F32 ${DISK}p1
+mkfs.ext4 ${DISK}p2
+
+# Monta e copia
+mount ${DISK}p2 /mnt
+rsync -aHAXx /* /mnt/ --exclude={/dev/*,/proc/*,/sys/*,/tmp/*,/run/*,/mnt/*}
+
+# Instala GRUB
+grub-install --target=x86_64-efi --efi-directory=/boot/efi --bootloader-id=Stellae $DISK
+grub-mkconfig -o /boot/grub/grub.cfg
+
+echo "✅ Instalação concluída! Reinicie."
