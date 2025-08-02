@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==========================================
-#    🌟 build-stellae.sh (versão compatível com Ubuntu)
-#    Gera ISO da Stellae Linux com live-build
+#    🌟 build-stellae.sh (versão final com limpeza de cache)
+#    Gera ISO da Stellae Linux
 # ==========================================
 
 set -e
@@ -20,8 +20,10 @@ echo "🔧 Instalando live-build..."
 apt-get update
 apt-get install -y live-build squashfs-tools
 
-# Limpar config antiga
+# LIMPAR TUDO: config e cache
+echo "🧹 Limpando configurações antigas e cache..."
 rm -rf config/
+lb clean --all 2>/dev/null || true
 
 # Configurar live-build com mirrors do Debian
 echo "⚙️ Configurando live-build para Debian bookworm"
@@ -37,8 +39,9 @@ lb config \
     --mirror-chroot-backports "http://deb.debian.org/debian-backports" \
     --keyring-packages "debian-archive-keyring"
 
-# Forçar o uso da chave do Debian (evita ubuntu-keyring)
-echo "P: Using Debian archive keyring only" > config/archives/debian.list
+# Forçar repositórios do Debian (evita duplicados)
+echo "📝 Forçando repositórios do Debian"
+rm -f config/archives/*.list
 cat > config/archives/debian.list <<'EOF'
 deb http://deb.debian.org/debian bookworm main contrib non-free
 deb http://security.debian.org/debian-security bookworm-security main contrib non-free
@@ -56,7 +59,8 @@ echo "live-config-systemd" >> config/package-lists/xfce.list.chroot
 echo "sudo" >> config/package-lists/xfce.list.chroot
 echo "nano" >> config/package-lists/xfce.list.chroot
 
-# Garantir kernel
+# Garantir kernel CORRETO do Debian
+echo "VMLINUX: Configurando kernel linux-image-amd64"
 lb config --linux-packages "linux-image-amd64"
 
 # Construir a ISO
