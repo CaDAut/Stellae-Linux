@@ -1,7 +1,7 @@
 #!/bin/bash
 # ==========================================
-#    🌟 build-stellae.sh (versão corrigida para Debian em Ubuntu)
-#    Usa live-build com mirrors do Debian
+#    🌟 build-stellae.sh (versão final e estável)
+#    Gera ISO da Stellae Linux com live-build
 # ==========================================
 
 set -e
@@ -20,10 +20,10 @@ echo "🔧 Instalando live-build..."
 apt-get update
 apt-get install -y live-build squashfs-tools
 
-# Limpar config antiga, se existir
+# Limpar config antiga
 rm -rf config/
 
-# Configurar com mirrors EXPLÍCITOS do Debian
+# Configurar live-build com mirrors do Debian
 echo "⚙️ Configurando live-build para Debian bookworm"
 lb config \
     --binary-images iso-hybrid \
@@ -34,7 +34,9 @@ lb config \
     --mirror-bootstrap "http://deb.debian.org/debian" \
     --mirror-chroot "http://deb.debian.org/debian" \
     --mirror-chroot-security "http://security.debian.org/debian-security" \
-    --mirror-chroot-backports "http://deb.debian.org/debian-backports"
+    --mirror-chroot-backports "http://deb.debian.org/debian-backports" \
+    --keyring-packages "debian-archive-keyring" \
+    --bootstrap-keyring-packages "debian-archive-keyring"
 
 # Pacotes para XFCE
 echo "xfce4" > config/package-lists/xfce.list.chroot
@@ -44,9 +46,11 @@ echo "lightdm-gtk-greeter" >> config/package-lists/xfce.list.chroot
 echo "live-boot" >> config/package-lists/xfce.list.chroot
 echo "live-config" >> config/package-lists/xfce.list.chroot
 echo "live-config-systemd" >> config/package-lists/xfce.list.chroot
+echo "sudo" >> config/package-lists/xfce.list.chroot
+echo "nano" >> config/package-lists/xfce.list.chroot
 
-# Garantir que o sistema é live
-lb config -a amd64 --linux-packages "linux-image"
+# Garantir kernel
+lb config --linux-packages "linux-image-amd64"
 
 # Construir a ISO
 echo "📦 Construindo a ISO... (30-60 minutos)"
