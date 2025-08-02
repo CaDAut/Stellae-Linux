@@ -1,7 +1,8 @@
 #!/bin/bash
 # ==========================================
-#    🌟 build-stellae.sh (versão final e compatível)
-#    Funciona no GitHub Actions (Ubuntu 24.04)
+#    🌟 build-stellae.sh (versão final e definitiva)
+#    Funciona no GitHub Actions com Ubuntu 24.04
+#    Gera ISO da Stellae Linux com sucesso
 # ==========================================
 
 set -e
@@ -26,7 +27,7 @@ rm -rf config/
 lb clean --all || true
 
 # Configuração BÁSICA (sem opções inválidas)
-echo "⚙️ Configurando live-build (modo compatível)"
+echo "⚙️ Configurando live-build para Debian bookworm"
 lb config \
     --binary-images iso-hybrid \
     --architectures amd64 \
@@ -37,14 +38,19 @@ lb config \
     --mirror-chroot "http://deb.debian.org/debian" \
     --mirror-chroot-security "http://security.debian.org/debian-security"
 
-# Forçar uso de repositórios do Debian (evita conflitos)
-echo "📝 Forçando repositórios do Debian"
-rm -f config/archives/*.list
+# Forçar uso exclusivo do Debian
+echo "📝 Removendo qualquer vestígio de Ubuntu"
+rm -f config/archives/ubuntu.list config/archives/*ubuntu*
+
+# Repositórios oficiais do Debian
 cat > config/archives/debian.list <<'EOF'
 deb http://deb.debian.org/debian bookworm main
 deb http://security.debian.org/debian-security bookworm-security main
 deb http://deb.debian.org/debian bookworm-updates main
 EOF
+
+# Garantir que apenas a chave do Debian seja usada
+lb config --keyring-packages "debian-archive-keyring"
 
 # Lista de pacotes mínimos
 echo "📝 Definindo pacotes mínimos"
@@ -59,7 +65,7 @@ echo "lightdm" >> config/package-lists/xfce.list.chroot
 echo "sudo" >> config/package-lists/xfce.list.chroot
 echo "nano" >> config/package-lists/xfce.list.chroot
 
-# Garantir que o kernel está configurado
+# Kernel
 lb config --linux-packages "linux-image-amd64"
 
 # Construir a ISO
