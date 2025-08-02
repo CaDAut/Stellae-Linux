@@ -1,25 +1,54 @@
-name: 🌌 Build Stellae ISO
+name: 🌌 Build Stellae Linux ISO
 
-on: [push]
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 90
+
     steps:
-    - name: Checkout
+    - name: 🛎️ Iniciar
+      run: |
+        echo "🚀 Iniciando construção da Stellae Linux"
+        df -h /
+
+    - name: 🔁 Clonar repositório
       uses: actions/checkout@v4
 
-    - name: Instalar dependências
+    - name: 🧰 Instalar dependências
       run: |
-        sudo apt update
-        sudo apt install -y debootstrap grub-pc-bin grub-efi-amd64-bin xorriso
+        sudo apt update -y
+        sudo apt install -y \
+          debootstrap \
+          grub-pc-bin \
+          grub-efi-amd64-bin \
+          xorriso \
+          dosfstools \
+          mtools \
+          gdisk \
+          --no-install-recommends
 
-    - name: Executar build
+    - name: 📂 Verificar se há script de build
+      run: |
+        if [ ! -f "build/build-stellae.sh" ]; then
+          echo "❌ Erro: build/build-stellae.sh não encontrado!"
+          exit 1
+        fi
+        chmod +x build/build-stellae.sh
+
+    - name: 🏗️ Executar construção
       run: |
         cd build
         sudo ./build-stellae.sh
 
-    - name: Enviar ISO
+    - name: 📦 Enviar ISO como artefato
+      if: success()
       uses: actions/upload-artifact@v4
       with:
         path: stellae-iso/binary.iso
+        name: stellae-linux-$(date '+%Y%m%d-%H%M').iso
+        retention-days: 7
