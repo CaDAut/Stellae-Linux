@@ -1,6 +1,6 @@
 #!/bin/bash
 # ==========================================
-#    🌟 build-stellae.sh (versão final e estável)
+#    🌟 build-stellae.sh (versão compatível com Ubuntu)
 #    Gera ISO da Stellae Linux com live-build
 # ==========================================
 
@@ -35,8 +35,15 @@ lb config \
     --mirror-chroot "http://deb.debian.org/debian" \
     --mirror-chroot-security "http://security.debian.org/debian-security" \
     --mirror-chroot-backports "http://deb.debian.org/debian-backports" \
-    --keyring-packages "debian-archive-keyring" \
-    --bootstrap-keyring-packages "debian-archive-keyring"
+    --keyring-packages "debian-archive-keyring"
+
+# Forçar o uso da chave do Debian (evita ubuntu-keyring)
+echo "P: Using Debian archive keyring only" > config/archives/debian.list
+cat > config/archives/debian.list <<'EOF'
+deb http://deb.debian.org/debian bookworm main contrib non-free
+deb http://security.debian.org/debian-security bookworm-security main contrib non-free
+deb http://deb.debian.org/debian bookworm-updates main contrib non-free
+EOF
 
 # Pacotes para XFCE
 echo "xfce4" > config/package-lists/xfce.list.chroot
