@@ -1,54 +1,53 @@
 name: 🌌 Build Stellae Linux ISO
 
+# Quando rodar
 on:
   push:
     branches: [ main ]
-  workflow_dispatch:
+  workflow_dispatch:  # Permite rodar manualmente no GitHub
 
+# Definição do trabalho
 jobs:
-  build:
+  build-stellae:
+    name: 🔧 Construir ISO
     runs-on: ubuntu-latest
     timeout-minutes: 90
 
     steps:
-    - name: 🛎️ Iniciar
-      run: |
-        echo "🚀 Iniciando construção da Stellae Linux"
-        df -h /
-
+    # 1. Clonar o repositório
     - name: 🔁 Clonar repositório
       uses: actions/checkout@v4
 
-    - name: 🧰 Instalar dependências
+    # 2. Tornar o script de build executável
+    - name: 📂 Tornar build-stellae.sh executável
       run: |
-        sudo apt update -y
-        sudo apt install -y \
-          debootstrap \
-          grub-pc-bin \
-          grub-efi-amd64-bin \
+        chmod +x build/build-stellae.sh
+
+    # 3. Instalar dependências necessárias
+    - name: 🧰 Instalar live-build e ferramentas
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y \
+          live-build \
+          squashfs-tools \
+          syslinux \
+          isolinux \
           xorriso \
           dosfstools \
           mtools \
-          gdisk \
           --no-install-recommends
 
-    - name: 📂 Verificar se há script de build
-      run: |
-        if [ ! -f "build/build-stellae.sh" ]; then
-          echo "❌ Erro: build/build-stellae.sh não encontrado!"
-          exit 1
-        fi
-        chmod +x build/build-stellae.sh
-
-    - name: 🏗️ Executar construção
+    # 4. Executar o script de construção
+    - name: 🏗️ Executar construção da Stellae
       run: |
         cd build
         sudo ./build-stellae.sh
 
-    - name: 📦 Enviar ISO como artefato
-      if: success()
+    # 5. Enviar a ISO como artefato
+    - name: 📦 Enviar ISO para download
       uses: actions/upload-artifact@v4
       with:
         path: stellae-iso/binary.iso
         name: stellae-linux-$(date '+%Y%m%d-%H%M').iso
         retention-days: 7
+        if-no-files-found: error
