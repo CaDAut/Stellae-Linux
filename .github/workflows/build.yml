@@ -1,1 +1,25 @@
+name: 🌌 Build Stellae ISO
 
+on: [push]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Instalar dependências
+      run: |
+        sudo apt update
+        sudo apt install -y debootstrap grub-pc-bin grub-efi-amd64-bin xorriso
+
+    - name: Executar build
+      run: |
+        cd build
+        sudo ./build-stellae.sh
+
+    - name: Enviar ISO
+      uses: actions/upload-artifact@v3
+      with:
+        path: stellae-iso/binary.iso
